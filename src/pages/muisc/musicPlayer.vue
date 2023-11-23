@@ -29,16 +29,20 @@
     </div>
 
     <footer class="footer">
-      <!-- 进度条 -->
+      <!--TODO: 进度条 -->
       <div class="slider">
         <view class="slider-current">
-          11:21
+          {{ currentTime }}
         </view>
-        <slider class="slider-val" block-size="12" :max="sliderMax" :value="sliderCurrent" @change="sliderChange" />
+        <!-- <u-slider class="slider-val1" block-size="12" :max="sliderMax" v-model="duration" @change="sliderChange" /> -->
+        <u-slider class="slider-val" :max="duration" @changing="audioCtx.pause()" @change="sliderChange"
+          v-model="currentTime"></u-slider>
+
         <view class="slider-duration">
-          21:22
+          {{ duration }}
         </view>
       </div>
+
       <!-- 音乐控制 -->
       <div class="control">
         <view class="control-item" @click="onMusicNext('up')">
@@ -65,13 +69,12 @@
     </footer>
 
 
-
-
-
   </div>
 </template>
 
 <script>
+import { musicInfo } from "@/store/index.js"
+const musicInfoStore = musicInfo()
 
 export default ({
   components: {},
@@ -79,65 +82,85 @@ export default ({
     return {
       payl: false,
       lyricStatus: true,
-      lyric: [
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攢峰 留容映水秀",
-        "無何化有 感物知春秋",
-        "秋毫濡沫欲綢繆 搦管相留",
-        "留骨攒峰 留容映水秀",
-        "無何化有 感物知春秋",
-      ],
+      audioCtx: null,
+      currentTime: 0,
+      duration: 0,
+
     }
   },
-  computed: {},
+  setup() {
+
+  },
+
+  beforeMount() {
+    console.log("onmounted");
+    this.audioCtx = uni.createInnerAudioContext();
+    let url = "../../static/testmusic/cs.flac"
+    this.audioCtx.src = url;
+
+    this.audioCtx.onTimeUpdate(() => {
+      console.log("currentTime", this.audioCtx.currentTime);
+      this.currentTime = this.audioCtx.currentTime;
+      this.duration = this.audioCtx.duration;
+    })
+    this.audioCtx.onCanplay(() => {
+      this.duration = this.audioCtx.duration;
+    })
+
+    // store musicinfo
+    musicInfoStore.$patch({
+      audioCtx: this.audioCtx,
+    })
+
+
+  },
+  computed: {
+
+  },
   methods: {
+
+    // 返回上一页
     onCloseClick() {
       uni.navigateBack({
         delta: 1
       });
     },
 
+
+
+    // 播放音乐
+    onMusicPlay() {
+      console.log("audioctx", this.audioCtx);
+      if (!this.payl)
+        this.audioCtx.play()
+
+      else {
+        this.audioCtx.pause()
+      }
+
+      console.log(this.audioCtx.currentTime);
+      // this.currentTime = this.audioCtx.currentTime;
+
+
+      this.payl = !this.payl;
+
+    },
+
+    // 滑动滚动条
+    sliderChange() {
+      this.audioCtx.currentTime = this.currentTime;
+      if (this.payl) {
+        this.audioCtx.play();
+      }
+
+    }
+
   },
-  watch: {},
 
   // 页面周期函数--监听页面加载
-  onLoad() { },
+  onLoad() {
+
+  },
   // 页面周期函数--监听页面初次渲染完成
   onReady() { },
   // 页面周期函数--监听页面显示(not-nvue)
@@ -187,8 +210,7 @@ export default ({
 
 .slider {
   display: flex;
-
-  justify-content: center;
+  justify-content: space-evenly;
   align-items: center;
 }
 
