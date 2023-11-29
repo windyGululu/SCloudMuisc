@@ -5,7 +5,7 @@
       <view class="header-close" @click="onCloseClick()">
         <u-icon name="arrow-down" color="#fff" size="30"></u-icon>
       </view>
-      <view class="header-title">音乐播放器</view>
+      <view class="header-title">{{ payl }}音乐播放器</view>
       <view class="header-close" @click="onCloseClick()">
         <u-icon name="share-square" color="#fff" size="30"></u-icon>
       </view>
@@ -13,15 +13,13 @@
 
     <div class="body">
       <!-- 背景图 -->
-      <image v-if="lyricStatus" class="bg-image" src="../../static/music/music-bg.jpg" mode=""></image>
+      <image v-if="!lyricStatus" class="bg-image" src="../../static/music/music-bg.jpg" mode=""></image>
 
       <!-- TODO:歌词 -->
-      <view v-if="!lyricStatus" class="lyric-container">
+      <view class="lyric-container">
         <view class="lyric-wrapper">
-          <view class="lyric-item" v-for="(item, index) in lyric" :key="index">
-            <view class="lyric-item">{{ item }}
-            </view>
-
+          <view class="lyric-item" v-for="(item, index) in lyric" :data-index='index' key="index">
+            {{ item.words }}{{ item.time }}
           </view>
         </view>
       </view>
@@ -29,18 +27,12 @@
     </div>
 
     <footer class="footer">
-      <!--TODO: 进度条 -->
+      <!-- 进度条 -->
       <div class="slider">
-        <view class="slider-current">
-          {{ currentTime }}
-        </view>
-        <!-- <u-slider class="slider-val1" block-size="12" :max="sliderMax" v-model="duration" @change="sliderChange" /> -->
-        <u-slider class="slider-val" :max="duration" @changing="audioCtx.pause()" @change="sliderChange"
+        <up-text class="slider-current" :text="fnDateMinuteMethod(currentTime)"></up-text>
+        <u-slider class="slider-val" step="1" :max="duration" @changing="audioCtx.pause()" @change="sliderChange"
           v-model="currentTime"></u-slider>
-
-        <view class="slider-duration">
-          {{ duration }}
-        </view>
+        <up-text class="slider-duration" :text="fnDateMinuteMethod(duration)"></up-text>
       </div>
 
       <!-- 音乐控制 -->
@@ -72,112 +64,154 @@
   </div>
 </template>
 
-<script>
-import { musicInfo } from "@/store/index.js"
-const musicInfoStore = musicInfo()
+<script setup>
+// import { musicInfo } from "@/store/index.js"
+// const musicInfoStore = musicInfo()
+import { fnDateMinute } from "@/utils/index.js"
+import axios from "axios";
 
-export default ({
-  components: {},
-  data() {
-    return {
-      payl: false,
-      lyricStatus: true,
-      audioCtx: null,
-      currentTime: 0,
-      duration: 0,
-
-    }
-  },
-  setup() {
-
-  },
-
-  beforeMount() {
-    console.log("onmounted");
-    this.audioCtx = uni.createInnerAudioContext();
-    let url = "../../static/testmusic/cs.flac"
-    this.audioCtx.src = url;
-
-    this.audioCtx.onTimeUpdate(() => {
-      console.log("currentTime", this.audioCtx.currentTime);
-      this.currentTime = this.audioCtx.currentTime;
-      this.duration = this.audioCtx.duration;
-    })
-    this.audioCtx.onCanplay(() => {
-      this.duration = this.audioCtx.duration;
-    })
-
-    // store musicinfo
-    musicInfoStore.$patch({
-      audioCtx: this.audioCtx,
-    })
-
-
-  },
-  computed: {
-
-  },
-  methods: {
-
-    // 返回上一页
-    onCloseClick() {
-      uni.navigateBack({
-        delta: 1
-      });
-    },
+// import { toRaw } from '@vue/reactivity'
+// import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 
 
-    // 播放音乐
-    onMusicPlay() {
-      console.log("audioctx", this.audioCtx);
-      if (!this.payl)
-        this.audioCtx.play()
+console.log("setup");
+let payl = ref(false)
 
-      else {
-        this.audioCtx.pause()
+let lyricStatus = ref(true)
+let audioCtx = ref(null)
+let currentTime = ref(0)
+let duration = ref(0)
+let lyric = ref([])
+
+const isOpen = onMounted(() => {
+  audioCtx = uni.createInnerAudioContext();
+  let url = "../../static/testmusic/cs.flac"
+  audioCtx.src = url;
+  showLrc()
+
+
+  audioCtx.onCanplay(() => {
+    duration.value = audioCtx.duration;
+  })
+
+  audioCtx.onTimeUpdate(() => {
+    currentTime.value = audioCtx.currentTime;
+    duration.value = audioCtx.duration;
+    // 滚动歌词
+    // 匹配歌词
+    for (let i = 0; i < lyric.length; i++) {
+      if (currentTime > (parseInt(lyric[i].time))) {
+        // const index =  $refs.lyric[i].dataset.index1
+        // console.log("index", index);
+        // if (i === parseInt(index)) {
+        //   console.log("currenttime");
+        //    lyricIndex = i
+        //    $refs.lyricUL.style.transform = `translateY(${170 - (30 * (i + 1))}px)`
+        // }
       }
-
-      console.log(this.audioCtx.currentTime);
-      // this.currentTime = this.audioCtx.currentTime;
-
-
-      this.payl = !this.payl;
-
-    },
-
-    // 滑动滚动条
-    sliderChange() {
-      this.audioCtx.currentTime = this.currentTime;
-      if (this.payl) {
-        this.audioCtx.play();
-      }
-
     }
 
-  },
+  })
 
-  // 页面周期函数--监听页面加载
-  onLoad() {
+}
+)
+// 返回上一页
+const onCloseClick = () => {
+  uni.navigateBack({
+    delta: 1
+  });
 
-  },
-  // 页面周期函数--监听页面初次渲染完成
-  onReady() { },
-  // 页面周期函数--监听页面显示(not-nvue)
-  onShow() { },
-  // 页面周期函数--监听页面隐藏
-  onHide() { },
-  // 页面周期函数--监听页面卸载
-  onUnload() { },
-  // 页面处理函数--监听用户下拉动作
-  // onPullDownRefresh() { uni.stopPullDownRefresh(); },
-  // 页面处理函数--监听用户上拉触底
-  // onReachBottom() {},
-  // 页面处理函数--监听页面滚动(not-nvue)
-  // onPageScroll(event) {},
-  // 页面处理函数--用户点击右上角分享
-  // onShareAppMessage(options) {},
-}) 
+}
+
+// 格式化时间
+//响应式中使用外部方法需要在data或method中声明
+const fnDateMinuteMethod = (params) => {
+  return fnDateMinute(params);
+}
+
+
+// 播放音乐
+const onMusicPlay = () => {
+  // console.log("audioctx",  audioCtx);
+  if (!payl.value)
+    audioCtx.play()
+  else {
+    audioCtx.pause()
+  }
+  payl.value = !payl.value;
+  console.log(payl);
+}
+
+
+
+// 跳转到进度条制定位置
+const sliderChange = () => {
+  audioCtx.seek(parseInt(currentTime.value));
+  if (payl.value) {
+    audioCtx.play();
+  }
+
+}
+
+const ParseLrc = (lrc) => {
+  var lines = lrc.split('\n');
+  var result = []; // 歌词对象数组
+  for (var i = 0; i < lines.length; i++) {
+    var lineStr = lines[i];
+    var lineParts = lineStr.split(']');
+    var timeStr = lineParts[0].substring(1);
+    var timeParts = timeStr.split(':');
+
+    var obj = {
+      time: +timeParts[0] * 60 + +timeParts[1],
+      words: lineParts[1],
+    };
+    result.push(obj);
+  }
+  return result;
+
+}
+
+
+const readLrc = async (url) => {
+
+  let result = await axios.get(url)
+  return result.data
+}
+
+
+const showLrc = async () => {
+  let url = "../../static/testmusic/cs.lrc"
+  lyric.value = await readLrc(url)
+  lyric.value = ParseLrc(lyric.value)
+
+}
+
+
+
+// // 页面周期函数--监听页面加载
+// onLoad() {
+
+// },
+// // 页面周期函数--监听页面初次渲染完成
+// onReady() { },
+// // 页面周期函数--监听页面显示(not-nvue)
+// onShow() { },
+// // 页面周期函数--监听页面隐藏
+// onHide() { },
+// // 页面周期函数--监听页面卸载
+// onUnload() { },
+// // 页面处理函数--监听用户下拉动作
+// // onPullDownRefresh() { uni.stopPullDownRefresh(); },
+// // 页面处理函数--监听用户上拉触底
+// // onReachBottom() {},
+// // 页面处理函数--监听页面滚动(not-nvue)
+// // onPageScroll(event) {},
+// // 页面处理函数--用户点击右上角分享
+// // onShareAppMessage(options) {},
+
 </script>
 
 <style scoped>
@@ -210,12 +244,12 @@ export default ({
 
 .slider {
   display: flex;
-  justify-content: space-evenly;
+  justify-content: space-around;
   align-items: center;
 }
 
 .slider-val {
-  width: 90%;
+  width: 80%;
 }
 
 .control {
@@ -237,6 +271,9 @@ export default ({
   margin: 10px;
 }
 
+.lyric-wrapper {
+  text-align: center;
+}
 
 .lyric-container {
   height: 750rpx;
